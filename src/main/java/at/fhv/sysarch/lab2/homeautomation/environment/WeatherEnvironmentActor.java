@@ -26,6 +26,17 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
         }
     }
 
+    //    swap between simulation modes (internal/external)
+    public static class SetSimulationMode implements WeatherEnvironmentCommand {
+        public final SimulationMode mode;
+
+        public SetSimulationMode(SimulationMode mode) {
+            this.mode = mode;
+        }
+    }
+
+    private SimulationMode mode = SimulationMode.INTERNAL;
+
     private final ActorRef<WeatherCommand> weatherSensor;
     private final TimerScheduler<WeatherEnvironmentCommand> timers;
     private final Random random = new Random();
@@ -47,6 +58,7 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
         return Behaviors.withTimers(timers -> Behaviors.setup(ctx -> new WeatherEnvironmentActor(ctx, timers, weatherSensor)));
     }
 
+
     @Override
     public Receive<WeatherEnvironmentCommand> createReceive() {
         return newReceiveBuilder()
@@ -54,11 +66,28 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
                 .onMessageEquals(SimpleCommand.START_SIMULATION, this::onStartSimulation)
                 .onMessageEquals(SimpleCommand.STOP_SIMULATION, this::onStopSimulation)
                 .onMessage(SetWeather.class, this::onSetWeather)
+                .onMessage(SetSimulationMode.class, this::onSetSimulationMode)
                 .build();
     }
 
+    private Behavior<WeatherEnvironmentCommand> onSetSimulationMode(SetSimulationMode cmd) {
+        this.mode = cmd.mode;
+        simulate = (mode == SimulationMode.INTERNAL); // auto-handle simulation flag
+
+        getContext().getLog().info("Simulation mode set to {}", mode);
+
+        if (mode == SimulationMode.MANUAL || mode == SimulationMode.OFF) {
+            timers.cancel(SimpleCommand.TICK); // Stop internal ticks
+        } else if (mode == SimulationMode.INTERNAL) {
+            timers.startTimerAtFixedRate(SimpleCommand.TICK, Duration.ofSeconds(5));
+        }
+
+        return this;
+    }
+
+
     private Behavior<WeatherEnvironmentCommand> onTick() {
-        if (simulate) {
+        if (mode == SimulationMode.INTERNAL && simulate) {
             currentWeather = getRandomWeather();
             getContext().getLog().info("Simulated weather: {}", currentWeather);
             weatherSensor.tell(new ReadWeather(currentWeather));
