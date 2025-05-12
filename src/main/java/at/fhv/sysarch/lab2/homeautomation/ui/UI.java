@@ -9,6 +9,8 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
 import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
+import at.fhv.sysarch.lab2.homeautomation.environment.MqttWeatherActor;
+import at.fhv.sysarch.lab2.homeautomation.environment.SimulationMode;
 import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor;
 import at.fhv.sysarch.lab2.homeautomation.commands.weather.WeatherTypes;
 
@@ -74,28 +76,37 @@ public class UI extends AbstractBehavior<Void> {
                 case "weather":
                     if (command.length > 1) {
                         try {
-                            WeatherTypes weather = WeatherTypes.valueOf(command[1].toLowerCase());
+                            WeatherTypes weather = WeatherTypes.valueOf(command[1].toUpperCase());
                             weatherEnvironment.tell(new WeatherEnvironmentActor.SetWeather(weather));
                         } catch (IllegalArgumentException e) {
-                            System.out.println("Unknown weather type. Use: sunny, cloudy");
+                            System.out.println("Unknown weather type. Use: SUNNY, CLOUDY, RAIN, SNOW or STORM");
                         }
                     }
                     break;
 
-                case "startsim":
-                    weatherEnvironment.tell(WeatherEnvironmentActor.SimpleCommand.START_SIMULATION);
+                case "start":
+                    if (command.length > 1) {
+                        try {
+                            SimulationMode mode = SimulationMode.valueOf(command[1].toUpperCase());
+                            weatherEnvironment.tell(new WeatherEnvironmentActor.SetSimulationMode(mode));
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("Unknown simulation mode. Use: start <mode> - Start weather simulation (external/internal)");
+                        }
+                    } else {
+                        System.out.println("Unknown simulation mode. Use: start <mode> - Start weather simulation (external/internal)");
+                    }
                     break;
 
-                case "stopsim":
-                    weatherEnvironment.tell(WeatherEnvironmentActor.SimpleCommand.STOP_SIMULATION);
+                case "stop":
+                    weatherEnvironment.tell(new WeatherEnvironmentActor.SetSimulationMode(SimulationMode.OFF));
                     break;
 
                 case "help":
                     System.out.println("Commands:");
                     System.out.println("  t <value>         - Set temperature (e.g., t 23.5)");
                     System.out.println("  weather <type>    - Set weather manually (sunny/cloudy)");
-                    System.out.println("  startsim          - Start weather simulation");
-                    System.out.println("  stopsim           - Stop weather simulation");
+                    System.out.println("  start <mode>      - Start weather simulation (external/internal)");
+                    System.out.println("  stop              - Stop weather simulation");
                     System.out.println("  quit              - Exit");
                     break;
 

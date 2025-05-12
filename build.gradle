@@ -1,3 +1,5 @@
+import netscape.javascript.JSObject
+
 plugins {
     id 'java'
     id 'application'
@@ -16,6 +18,8 @@ repositories {
 dependencies {
 //    MQTT
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+//    JSObject
+    implementation 'org.json:json:20250107'
 
     implementation 'com.typesafe.akka:akka-actor_3:2.10.2'
     implementation 'com.typesafe.akka:akka-actor-typed_3:2.10.2'

@@ -32,9 +32,9 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
     }
 
     private Behavior<BlindsCommand> onAdjustBlinds(AdjustBlinds cmd) {
-        if (cmd.weather == WeatherTypes.sunny) {
+        if (cmd.weather == WeatherTypes.SUNNY) {
             getContext().getLog().info("Weather is sunny -> Lowering blinds.");
-        } else if (cmd.weather == WeatherTypes.cloudy) {
+        } else if (cmd.weather == WeatherTypes.CLOUDY) {
             getContext().getLog().info("Weather is cloudy -> Raising blinds.");
         }
         return this;
