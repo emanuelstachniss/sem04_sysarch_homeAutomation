@@ -27,8 +27,8 @@ public class WeatherSensor extends AbstractBehavior<WeatherCommand> {
     }
 
     private Behavior<WeatherCommand> onReadWeather(ReadWeather cmd) {
-        getContext().getLog().info("WeatherSensor received weather: {}", cmd.getWeather());
-        blinds.tell(new Blinds.AdjustBlinds(cmd.getWeather()));
+        getContext().getLog().info("WeatherSensor received weather: {}", cmd.weather());
+        blinds.tell(new Blinds.AdjustBlinds(cmd.weather()));
         return this;
     }
 }

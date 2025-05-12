@@ -20,7 +20,7 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
 
     public static class ReevaluateBlinds implements BlindsCommand {}
 
-    private WeatherTypes lastKnownWeather = WeatherTypes.sunny; // Defaultwert
+    private WeatherTypes lastKnownWeather = WeatherTypes.SUNNY; // Defaultwert
     private boolean manuallyClosed = false;
 
     public static Behavior<BlindsCommand> create() {
@@ -44,9 +44,9 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
         lastKnownWeather = cmd.weather;
 
         if (!manuallyClosed) {
-            if (cmd.weather == WeatherTypes.sunny) {
+            if (cmd.weather == WeatherTypes.SUNNY) {
                 getContext().getLog().info("Weather is sunny -> Lowering blinds.");
-            } else {
+            } else if (cmd.weather == WeatherTypes.CLOUDY) {
                 getContext().getLog().info("Weather is cloudy -> Raising blinds.");
             }
         } else {
