@@ -16,6 +16,13 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
         }
     }
 
+    public static class CloseBlinds implements BlindsCommand {}
+
+    public static class ReevaluateBlinds implements BlindsCommand {}
+
+    private WeatherTypes lastKnownWeather = WeatherTypes.sunny; // Defaultwert
+    private boolean manuallyClosed = false;
+
     public static Behavior<BlindsCommand> create() {
         return Behaviors.setup(Blinds::new);
     }
@@ -28,15 +35,35 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
     public Receive<BlindsCommand> createReceive() {
         return newReceiveBuilder()
                 .onMessage(AdjustBlinds.class, this::onAdjustBlinds)
+                .onMessage(CloseBlinds.class, this::onCloseBlinds)
+                .onMessage(ReevaluateBlinds.class, this::onReevaluateBlinds)
                 .build();
     }
 
     private Behavior<BlindsCommand> onAdjustBlinds(AdjustBlinds cmd) {
-        if (cmd.weather == WeatherTypes.sunny) {
-            getContext().getLog().info("Weather is sunny -> Lowering blinds.");
-        } else if (cmd.weather == WeatherTypes.cloudy) {
-            getContext().getLog().info("Weather is cloudy -> Raising blinds.");
+        lastKnownWeather = cmd.weather;
+
+        if (!manuallyClosed) {
+            if (cmd.weather == WeatherTypes.sunny) {
+                getContext().getLog().info("Weather is sunny -> Lowering blinds.");
+            } else {
+                getContext().getLog().info("Weather is cloudy -> Raising blinds.");
+            }
+        } else {
+            getContext().getLog().info("Blinds manually closed -> Ignoring weather update.");
         }
+
         return this;
+    }
+
+    private Behavior<BlindsCommand> onCloseBlinds(CloseBlinds cmd) {
+        getContext().getLog().info("Blinds manually closed for movie.");
+        manuallyClosed = true;
+        return this;
+    }
+
+    private Behavior<BlindsCommand> onReevaluateBlinds(ReevaluateBlinds cmd) {
+        manuallyClosed = false;
+        return onAdjustBlinds(new AdjustBlinds(lastKnownWeather));
     }
 }
