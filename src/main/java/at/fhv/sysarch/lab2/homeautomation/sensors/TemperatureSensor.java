@@ -1,4 +1,4 @@
-package at.fhv.sysarch.lab2.homeautomation.devices;
+package at.fhv.sysarch.lab2.homeautomation.sensors;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
@@ -7,24 +7,17 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import at.fhv.sysarch.lab2.homeautomation.commands.temperature.*;
+import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
 
-public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.TemperatureCommand> {
+public class TemperatureSensor extends AbstractBehavior<TemperatureCommand> {
 
-    public interface TemperatureCommand {}
+    private final ActorRef<AirCondition.AirConditionCommand> airCondition;
 
-    public static final class ReadTemperature implements TemperatureCommand {
-        final Double value;
-
-        public ReadTemperature(Double value) {
-            this.value = value;
-        }
-    }
 
     public static Behavior<TemperatureCommand> create(ActorRef<AirCondition.AirConditionCommand> airCondition) {
         return Behaviors.setup(context -> new TemperatureSensor(context, airCondition));
     }
-
-    private final ActorRef<AirCondition.AirConditionCommand> airCondition;
 
     public TemperatureSensor(ActorContext<TemperatureCommand> context, ActorRef<AirCondition.AirConditionCommand> airCondition) {
         super(context);
@@ -42,8 +35,8 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Temper
     }
 
     private Behavior<TemperatureCommand> onReadTemperature(ReadTemperature r) {
-        getContext().getLog().info("TemperatureSensor received {}", r.value);
-        this.airCondition.tell(new AirCondition.EnrichedTemperature(r.value, "Celsius"));
+        getContext().getLog().info("TemperatureSensor received {}", r.temperature());
+        this.airCondition.tell(new AirCondition.EnrichedTemperature(r.temperature(), "Celsius"));
         return this;
     }
 

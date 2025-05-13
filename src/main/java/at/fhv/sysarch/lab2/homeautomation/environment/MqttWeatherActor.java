@@ -12,33 +12,36 @@ import java.util.List;
 
 public class MqttWeatherActor extends AbstractBehavior<MqttWeatherActor.MqttCommand> {
 
-    public interface MqttCommand {
-    }
+    public interface MqttCommand {}
 
     public static class MessageReceived implements MqttCommand {
-        public final String topic;
-        public final String message;
-
+        public String topic;
+        public String message;
         public MessageReceived(String topic, String message) {
             this.topic = topic;
             this.message = message;
         }
     }
 
+
     private final String broker = "tcp://10.0.40.161:1883";
     private final List<String> topics = Arrays.asList("weather/temperature", "weather/condition");
     private MqttClient client;
     private final ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> envController;
+    private final ActorRef<TemperatureEnvironmentActor.TemperatureEnvironmentCommand> tempController;
 
 
-    public static Behavior<MqttCommand> create(ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> envController) {
-        return Behaviors.setup(context -> new MqttWeatherActor(context, envController));
+    public static Behavior<MqttCommand> create(ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> envController,
+                                               ActorRef<TemperatureEnvironmentActor.TemperatureEnvironmentCommand> tempController) {
+        return Behaviors.setup(context -> new MqttWeatherActor(context, envController, tempController));
     }
 
     private MqttWeatherActor(ActorContext<MqttCommand> context,
-                           ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> envController) {
+                             ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> envController,
+                             ActorRef<TemperatureEnvironmentActor.TemperatureEnvironmentCommand> tempController) {
         super(context);
         this.envController = envController;
+        this.tempController = tempController;
         startMqttClient();
     }
 
@@ -101,8 +104,8 @@ public class MqttWeatherActor extends AbstractBehavior<MqttWeatherActor.MqttComm
         switch (message.topic) {
             case "weather/temperature":
                 JSONObject jsonMessage = new JSONObject(message.message);
-                double temperature = Double.parseDouble(jsonMessage.getString("temperature"));
-//                envController.tell(new WeatherEnvironmentActor.ExternalTemperatureChanged(temperature));
+                Double temperature = Double.parseDouble(jsonMessage.getString("temperature"));
+                tempController.tell(new TemperatureEnvironmentActor.ExternalTemperatureUpdate(temperature));
                 break;
 
             case "weather/condition":

@@ -19,25 +19,22 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
     }
 
     public static class SetWeather implements WeatherEnvironmentCommand {
-        public final WeatherTypes value;
-
+        public WeatherTypes value;
         public SetWeather(WeatherTypes value) {
             this.value = value;
         }
     }
 
-    //    swap between simulation modes (internal/external)
+    //    swap between simulation modes (internal/external/manual/off)
     public static class SetSimulationMode implements WeatherEnvironmentCommand {
         public SimulationMode mode;
-
         public SetSimulationMode(SimulationMode mode) {
             this.mode = mode;
         }
     }
 
     public static class ExternalWeatherUpdate implements WeatherEnvironmentCommand {
-        public final WeatherTypes condition;
-
+        public WeatherTypes condition;
         public ExternalWeatherUpdate(WeatherTypes condition) {
             this.condition = condition;
         }
@@ -48,6 +45,7 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
     private final TimerScheduler<WeatherEnvironmentCommand> timers;
     private final Random random = new Random();
     private WeatherTypes currentWeather = WeatherTypes.SUNNY;
+
 
     private WeatherEnvironmentActor(ActorContext<WeatherEnvironmentCommand> context,
                                     TimerScheduler<WeatherEnvironmentCommand> timers,
@@ -131,7 +129,6 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
         }
         return this;
     }
-
 
     private WeatherTypes getRandomWeather() {
         WeatherTypes[] values = WeatherTypes.values();

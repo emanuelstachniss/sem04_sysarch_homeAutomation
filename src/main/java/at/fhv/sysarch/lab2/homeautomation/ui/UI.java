@@ -9,9 +9,8 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaType;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
-import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
-import at.fhv.sysarch.lab2.homeautomation.environment.MqttWeatherActor;
 import at.fhv.sysarch.lab2.homeautomation.environment.SimulationMode;
+import at.fhv.sysarch.lab2.homeautomation.environment.TemperatureEnvironmentActor;
 import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor;
 import at.fhv.sysarch.lab2.homeautomation.commands.weather.WeatherTypes;
 import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaCommand;
@@ -21,29 +20,29 @@ import java.util.Scanner;
 
 public class UI extends AbstractBehavior<Void> {
 
-    private final ActorRef<TemperatureSensor.TemperatureCommand> tempSensor;
     private final ActorRef<AirCondition.AirConditionCommand> airCondition;
     private final ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment;
+    private final ActorRef<TemperatureEnvironmentActor.TemperatureEnvironmentCommand> temperatureEnvironment;
     private final ActorRef<MediaCommand> mediaStation;
 
     public static Behavior<Void> create(
-            ActorRef<TemperatureSensor.TemperatureCommand> tempSensor,
             ActorRef<AirCondition.AirConditionCommand> airCondition,
             ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment,
+            ActorRef<TemperatureEnvironmentActor.TemperatureEnvironmentCommand> temperatureEnvironment,
             ActorRef<MediaCommand> mediaStation) {
-        return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, weatherEnvironment, mediaStation));
+        return Behaviors.setup(context -> new UI(context, airCondition, weatherEnvironment, temperatureEnvironment, mediaStation));
     }
 
     private UI(
             ActorContext<Void> context,
-            ActorRef<TemperatureSensor.TemperatureCommand> tempSensor,
             ActorRef<AirCondition.AirConditionCommand> airCondition,
             ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment,
+            ActorRef<TemperatureEnvironmentActor.TemperatureEnvironmentCommand> temperatureEnvironment,
             ActorRef<MediaCommand> mediaStation) {
         super(context);
-        this.tempSensor = tempSensor;
         this.airCondition = airCondition;
         this.weatherEnvironment = weatherEnvironment;
+        this.temperatureEnvironment = temperatureEnvironment;
         this.mediaStation = mediaStation;
         new Thread(this::runCommandLine).start();
 
@@ -72,8 +71,8 @@ public class UI extends AbstractBehavior<Void> {
                 case "t":
                     if (command.length > 1) {
                         try {
-                            double temperature = Double.parseDouble(command[1]);
-                            tempSensor.tell(new TemperatureSensor.ReadTemperature(temperature));
+                            Double temperature = Double.parseDouble(command[1]);
+                            temperatureEnvironment.tell(new TemperatureEnvironmentActor.SetTemperature(temperature));
                         } catch (NumberFormatException e) {
                             System.out.println("Invalid temperature value.");
                         }
@@ -96,6 +95,7 @@ public class UI extends AbstractBehavior<Void> {
                         try {
                             SimulationMode mode = SimulationMode.valueOf(command[1].toUpperCase());
                             weatherEnvironment.tell(new WeatherEnvironmentActor.SetSimulationMode(mode));
+                            temperatureEnvironment.tell(new TemperatureEnvironmentActor.SetSimulationMode(mode));
                         } catch (IllegalArgumentException e) {
                             System.out.println("Unknown simulation mode. Use: start <mode> - Start weather simulation (external/internal)");
                         }
@@ -106,6 +106,7 @@ public class UI extends AbstractBehavior<Void> {
 
                 case "stopsim":
                     weatherEnvironment.tell(new WeatherEnvironmentActor.SetSimulationMode(SimulationMode.OFF));
+                    temperatureEnvironment.tell(new TemperatureEnvironmentActor.SetSimulationMode(SimulationMode.OFF));
                     break;
 
                 case "play":

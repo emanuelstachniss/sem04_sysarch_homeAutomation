@@ -8,15 +8,18 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
-import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
+import at.fhv.sysarch.lab2.homeautomation.sensors.TemperatureSensor;
 import at.fhv.sysarch.lab2.homeautomation.devices.Blinds;
 import at.fhv.sysarch.lab2.homeautomation.environment.MqttWeatherActor;
 import at.fhv.sysarch.lab2.homeautomation.devices.MediaStation;
 import at.fhv.sysarch.lab2.homeautomation.sensors.WeatherSensor;
-import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor;
 import at.fhv.sysarch.lab2.homeautomation.commands.weather.WeatherCommand;
-import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaCommand;
+import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor;
 import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor.WeatherEnvironmentCommand;
+import at.fhv.sysarch.lab2.homeautomation.commands.temperature.TemperatureCommand;
+import at.fhv.sysarch.lab2.homeautomation.environment.TemperatureEnvironmentActor;
+import at.fhv.sysarch.lab2.homeautomation.environment.TemperatureEnvironmentActor.TemperatureEnvironmentCommand;
+import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaCommand;
 import at.fhv.sysarch.lab2.homeautomation.ui.UI;
 
 import java.util.UUID;
@@ -33,9 +36,6 @@ public class HomeAutomationController extends AbstractBehavior<Void> {
         ActorRef<AirCondition.AirConditionCommand> airCondition =
                 getContext().spawn(AirCondition.create(UUID.randomUUID().toString()), "AirCondition");
 
-        ActorRef<TemperatureSensor.TemperatureCommand> tempSensor =
-                getContext().spawn(TemperatureSensor.create(airCondition), "TemperatureSensor");
-
         ActorRef<Blinds.BlindsCommand> blinds =
                 getContext().spawn(Blinds.create(), "Blinds");
 
@@ -48,9 +48,15 @@ public class HomeAutomationController extends AbstractBehavior<Void> {
         ActorRef<WeatherEnvironmentCommand> weatherEnv =
                 getContext().spawn(WeatherEnvironmentActor.create(weatherSensor), "WeatherEnvironment");
 
-        ActorRef<Void> ui = getContext().spawn(UI.create(tempSensor, airCondition, weatherEnv, mediaStation), "UI");
+        ActorRef<TemperatureCommand> tempSensor =
+                getContext().spawn(TemperatureSensor.create(airCondition), "TemperatureSensor");
 
-        getContext().spawn(MqttWeatherActor.create(weatherEnv), "MqttWeatherActor");
+        ActorRef<TemperatureEnvironmentCommand> temperatureEnv =
+                getContext().spawn(TemperatureEnvironmentActor.create(tempSensor), "TemperatureEnvironment");
+
+        ActorRef<Void> ui = getContext().spawn(UI.create(airCondition, weatherEnv, temperatureEnv, mediaStation), "UI");
+
+        getContext().spawn(MqttWeatherActor.create(weatherEnv, temperatureEnv), "MqttWeatherActor");
 
         getContext().getLog().info("HomeAutomation Application started");
     }

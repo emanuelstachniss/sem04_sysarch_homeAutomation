@@ -21,7 +21,7 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
     public static class ReevaluateBlinds implements BlindsCommand {}
 
     private WeatherTypes lastKnownWeather = WeatherTypes.SUNNY; // Defaultwert
-    private boolean manuallyClosed = false;
+    private boolean manuallyClosed = false; //for movies
 
     public static Behavior<BlindsCommand> create() {
         return Behaviors.setup(Blinds::new);
@@ -41,23 +41,20 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
     }
 
     private Behavior<BlindsCommand> onAdjustBlinds(AdjustBlinds cmd) {
-        lastKnownWeather = cmd.weather;
-
         if (!manuallyClosed) {
-            if (cmd.weather == WeatherTypes.SUNNY) {
-                getContext().getLog().info("Weather is sunny -> Lowering blinds.");
-            } else if (cmd.weather == WeatherTypes.CLOUDY) {
-                getContext().getLog().info("Weather is cloudy -> Raising blinds.");
+            if (cmd.weather == WeatherTypes.SUNNY && lastKnownWeather != WeatherTypes.SUNNY) {
+                getContext().getLog().info("Weather is {} -> Lowering blinds.", cmd.weather.toString());
+            } else if (cmd.weather != WeatherTypes.SUNNY && lastKnownWeather == WeatherTypes.SUNNY) {
+                getContext().getLog().info("Weather is {} -> Raising blinds.", cmd.weather.toString());
             }
-        } else {
-            getContext().getLog().info("Blinds manually closed -> Ignoring weather update.");
         }
 
+        lastKnownWeather = cmd.weather;
         return this;
     }
 
     private Behavior<BlindsCommand> onCloseBlinds(CloseBlinds cmd) {
-        getContext().getLog().info("Blinds manually closed for movie.");
+        getContext().getLog().info("Blinds manually closed -> Ignoring weather update.");
         manuallyClosed = true;
         return this;
     }
