@@ -15,7 +15,7 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
     public interface WeatherEnvironmentCommand {}
 
     public enum SimpleCommand implements WeatherEnvironmentCommand {
-        TICK, START_SIMULATION, STOP_SIMULATION
+        TICK
     }
 
     public static class SetWeather implements WeatherEnvironmentCommand {
@@ -67,8 +67,6 @@ public class WeatherEnvironmentActor extends AbstractBehavior<WeatherEnvironment
     public Receive<WeatherEnvironmentCommand> createReceive() {
         return newReceiveBuilder()
                 .onMessageEquals(SimpleCommand.TICK, this::onTick)
-                .onMessageEquals(SimpleCommand.START_SIMULATION, this::onStartSimulation)
-                .onMessageEquals(SimpleCommand.STOP_SIMULATION, this::onStopSimulation)
                 .onMessage(ExternalWeatherUpdate.class, this::onExternalWeatherUpdate)
                 .onMessage(SetSimulationMode.class, this::onSetSimulationMode)
                 .onMessage(SetWeather.class, this::onSetWeather)

@@ -22,7 +22,6 @@ import at.fhv.sysarch.lab2.homeautomation.environment.TemperatureEnvironmentActo
 import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaCommand;
 import at.fhv.sysarch.lab2.homeautomation.ui.UI;
 
-import java.util.UUID;
 
 public class HomeAutomationController extends AbstractBehavior<Void> {
 
@@ -34,7 +33,7 @@ public class HomeAutomationController extends AbstractBehavior<Void> {
         super(context);
 
         ActorRef<AirCondition.AirConditionCommand> airCondition =
-                getContext().spawn(AirCondition.create(UUID.randomUUID().toString()), "AirCondition");
+                getContext().spawn(AirCondition.create(), "AirCondition");
 
         ActorRef<Blinds.BlindsCommand> blinds =
                 getContext().spawn(Blinds.create(), "Blinds");
@@ -56,7 +55,7 @@ public class HomeAutomationController extends AbstractBehavior<Void> {
 
         ActorRef<Void> ui = getContext().spawn(UI.create(airCondition, weatherEnv, temperatureEnv, mediaStation), "UI");
 
-        getContext().spawn(MqttWeatherActor.create(weatherEnv, temperatureEnv), "MqttWeatherActor");
+        ActorRef<MqttWeatherActor.MqttCommand> mqtt = getContext().spawn(MqttWeatherActor.create(weatherEnv, temperatureEnv), "MqttWeatherActor");
 
         getContext().getLog().info("HomeAutomation Application started");
     }

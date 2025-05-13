@@ -13,7 +13,7 @@ public class TemperatureEnvironmentActor extends AbstractBehavior<TemperatureEnv
     public interface TemperatureEnvironmentCommand {}
 
     public enum SimpleCommand implements TemperatureEnvironmentCommand {
-        TICK, START_SIMULATION, STOP_SIMULATION
+        TICK
     }
 
     public static class SetTemperature implements TemperatureEnvironmentCommand {
@@ -62,8 +62,6 @@ public class TemperatureEnvironmentActor extends AbstractBehavior<TemperatureEnv
     public Receive<TemperatureEnvironmentCommand> createReceive() {
         return newReceiveBuilder()
                 .onMessageEquals(SimpleCommand.TICK, this::onTick)
-                .onMessageEquals(SimpleCommand.START_SIMULATION, this::onStartSimulation)
-                .onMessageEquals(SimpleCommand.STOP_SIMULATION, this::onStopSimulation)
                 .onMessage(ExternalTemperatureUpdate.class, this::onExternalTemperatureUpdate)
                 .onMessage(SetSimulationMode.class, this::onSetSimulationMode)
                 .onMessage(SetTemperature.class, this::onSetTemperature)
@@ -98,9 +96,11 @@ public class TemperatureEnvironmentActor extends AbstractBehavior<TemperatureEnv
         return this;
     }
 
-    private Behavior<TemperatureEnvironmentCommand> onSetTemperature(SetTemperature msg) {
-        currentTemperature = msg.temperature;
+    private Behavior<TemperatureEnvironmentCommand> onSetTemperature(SetTemperature cmd) {
+        mode = SimulationMode.MANUAL;
+        currentTemperature = cmd.temperature;
         getContext().getLog().info("Temperature manually set to {}", currentTemperature);
+        temperatureSensor.tell(new ReadTemperature(currentTemperature));
         return this;
     }
 

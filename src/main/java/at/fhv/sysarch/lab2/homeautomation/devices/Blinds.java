@@ -9,8 +9,7 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
     public interface BlindsCommand {}
 
     public static class AdjustBlinds implements BlindsCommand {
-        public final WeatherTypes weather;
-
+        public WeatherTypes weather;
         public AdjustBlinds(WeatherTypes weather) {
             this.weather = weather;
         }
@@ -19,6 +18,7 @@ public class Blinds extends AbstractBehavior<Blinds.BlindsCommand> {
     public static class CloseBlinds implements BlindsCommand {}
 
     public static class ReevaluateBlinds implements BlindsCommand {}
+
 
     private WeatherTypes lastKnownWeather = WeatherTypes.SUNNY; // Defaultwert
     private boolean manuallyClosed = false; //for movies
