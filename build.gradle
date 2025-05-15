@@ -3,6 +3,8 @@ import netscape.javascript.JSObject
 plugins {
     id 'java'
     id 'application'
+    id 'com.google.protobuf' version '0.9.4'
+    id 'com.lightbend.akka.grpc.gradle' version '2.5.5'
 }
 
 group 'at.fhv.lab2'
@@ -16,18 +18,56 @@ repositories {
 }
 
 dependencies {
+    def akkaGrpcVersion = '2.5.5'
+    def akkaVersion = '2.10.5'
+
 //    MQTT
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
 //    JSObject
     implementation 'org.json:json:20250107'
 
-    implementation 'com.typesafe.akka:akka-actor_3:2.10.2'
-    implementation 'com.typesafe.akka:akka-actor-typed_3:2.10.2'
-    implementation 'com.typesafe.akka:akka-actor-testkit-typed_3:2.10.2'
+
+    implementation "com.typesafe.akka:akka-actor_3:$akkaVersion"
+    implementation "com.typesafe.akka:akka-actor-typed_3:$akkaVersion"
+    implementation "com.typesafe.akka:akka-actor-testkit-typed_3:$akkaVersion"
+    implementation "com.typesafe.akka:akka-stream_3:$akkaVersion"
+    implementation "com.typesafe.akka:akka-http2-support_3:10.5.3"
+    implementation "com.typesafe.akka:akka-http_3:10.5.3"
+
+    implementation 'com.lightbend.akka:akka-stream-alpakka-mqtt_3:9.0.1'
+
+    implementation "com.lightbend.akka.grpc:akka-grpc-runtime_3:${akkaGrpcVersion}"
+    implementation "io.grpc:grpc-netty-shaded:1.72.0"
+
+    implementation 'org.scala-lang:scala-library:2.13.15'
     implementation 'ch.qos.logback:logback-classic:1.5.18'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
 }
+
+akkaGrpc {
+    generateClient = true
+    generateServer = true
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.1"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.62.2"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
 
 application {
     mainClass = 'at.fhv.sysarch.lab2.HomeAutomationSystem'

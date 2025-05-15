@@ -3,7 +3,7 @@ package at.fhv.sysarch.lab2.homeautomation.devices;
 import akka.actor.typed.*;
 import akka.actor.typed.javadsl.*;
 import at.fhv.sysarch.lab2.homeautomation.commands.fridge.*;
-import at.fhv.sysarch.lab2.homeautomation.grpc.OrderServiceClientActor;
+import at.fhv.sysarch.lab2.orderSystem.OrderServiceClientActor;
 
 import java.util.*;
 
