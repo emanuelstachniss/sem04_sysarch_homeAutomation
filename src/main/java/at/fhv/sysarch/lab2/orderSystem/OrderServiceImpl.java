@@ -3,7 +3,6 @@
     import akka.actor.typed.ActorRef;
     import akka.actor.typed.ActorSystem;
     import akka.actor.typed.javadsl.AskPattern;
-    import at.fhv.sysarch.lab2.homeautomation.grpc.Order;
     import at.fhv.sysarch.lab2.homeautomation.grpc.OrderReply;
     import at.fhv.sysarch.lab2.homeautomation.grpc.OrderRequest;
     import at.fhv.sysarch.lab2.homeautomation.grpc.OrderService;
@@ -12,7 +11,6 @@
     import at.fhv.sysarch.lab2.orderSystem.internal.OrderReplyInternal;
 
     import java.time.Duration;
-    import java.util.concurrent.CompletableFuture;
     import java.util.concurrent.CompletionStage;
 
     public class OrderServiceImpl implements OrderService {

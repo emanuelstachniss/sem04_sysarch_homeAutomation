@@ -1,4 +1,4 @@
-package at.fhv.sysarch.lab2.orderSystem;
+package at.fhv.sysarch.lab2.homeautomation.devices;
 
 import java.util.List;
 

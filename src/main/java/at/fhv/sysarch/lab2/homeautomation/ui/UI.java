@@ -12,13 +12,10 @@ import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaCommand;
 import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaPlayer;
 import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaType;
 import at.fhv.sysarch.lab2.homeautomation.commands.weather.WeatherTypes;
-import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
+import at.fhv.sysarch.lab2.homeautomation.devices.*;
 import at.fhv.sysarch.lab2.homeautomation.devices.Fridge;
-import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
 import at.fhv.sysarch.lab2.homeautomation.environment.SimulationMode;
 import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor;
-import at.fhv.sysarch.lab2.orderSystem.Product;
-import at.fhv.sysarch.lab2.orderSystem.Receipt;
 
 import java.util.List;
 import java.util.Scanner;
@@ -30,16 +27,14 @@ public class UI extends AbstractBehavior<Object> {
     private final ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment;
     private final ActorRef<MediaCommand> mediaStation;
     private final ActorRef<FridgeCommand> fridge;
-    private final ActorRef<String> orderExecutor;
 
     public static Behavior<Object> create(
             ActorRef<TemperatureSensor.TemperatureCommand> tempSensor,
             ActorRef<AirCondition.AirConditionCommand> airCondition,
             ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment,
             ActorRef<MediaCommand> mediaStation,
-            ActorRef<FridgeCommand> fridge,
-            ActorRef<String> orderExecutor) {
-        return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, weatherEnvironment, mediaStation, fridge, orderExecutor));
+            ActorRef<FridgeCommand> fridge) {
+        return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, weatherEnvironment, mediaStation, fridge));
     }
 
     private UI(
@@ -48,15 +43,13 @@ public class UI extends AbstractBehavior<Object> {
             ActorRef<AirCondition.AirConditionCommand> airCondition,
             ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment,
             ActorRef<MediaCommand> mediaStation,
-            ActorRef<FridgeCommand> fridge,
-            ActorRef<String> orderExecutor) {
+            ActorRef<FridgeCommand> fridge) {
         super(context);
         this.tempSensor = tempSensor;
         this.airCondition = airCondition;
         this.weatherEnvironment = weatherEnvironment;
         this.mediaStation = mediaStation;
         this.fridge = fridge;
-        this.orderExecutor = orderExecutor;
 
         new Thread(this::runCommandLine).start();
 
@@ -184,6 +177,10 @@ public class UI extends AbstractBehavior<Object> {
                     } else {
                         System.out.println("Usage: order <product> <qty>");
                     }
+                    break;
+
+                case "stock":
+                    fridge.tell(new Fridge.FridgeState(getContext().getSelf().narrow()));
                     break;
 
                 case "help":

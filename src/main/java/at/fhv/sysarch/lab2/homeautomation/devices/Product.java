@@ -1,4 +1,4 @@
-package at.fhv.sysarch.lab2.orderSystem;
+package at.fhv.sysarch.lab2.homeautomation.devices;
 
 public class Product {
     private final String name;
