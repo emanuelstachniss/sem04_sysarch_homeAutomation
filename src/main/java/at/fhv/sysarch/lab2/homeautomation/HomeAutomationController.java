@@ -10,8 +10,11 @@ import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
 import at.fhv.sysarch.lab2.homeautomation.sensors.TemperatureSensor;
 import at.fhv.sysarch.lab2.homeautomation.devices.Blinds;
+import at.fhv.sysarch.lab2.homeautomation.commands.fridge.FridgeCommand;
+import at.fhv.sysarch.lab2.homeautomation.devices.*;
 import at.fhv.sysarch.lab2.homeautomation.environment.MqttWeatherActor;
-import at.fhv.sysarch.lab2.homeautomation.devices.MediaStation;
+import at.fhv.sysarch.lab2.homeautomation.order.OrderExecutor;
+import at.fhv.sysarch.lab2.homeautomation.order.PlaceOrder;
 import at.fhv.sysarch.lab2.homeautomation.sensors.WeatherSensor;
 import at.fhv.sysarch.lab2.homeautomation.commands.weather.WeatherCommand;
 import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor;
@@ -35,11 +38,17 @@ public class HomeAutomationController extends AbstractBehavior<Void> {
         ActorRef<AirCondition.AirConditionCommand> airCondition =
                 getContext().spawn(AirCondition.create(), "AirCondition");
 
+        ActorRef<PlaceOrder> orderExecutor =
+                getContext().spawn(OrderExecutor.create(), "OrderExecutor");
+
         ActorRef<Blinds.BlindsCommand> blinds =
                 getContext().spawn(Blinds.create(), "Blinds");
 
         ActorRef<MediaCommand> mediaStation =
                 getContext().spawn(MediaStation.create(blinds), "MediaStation");
+
+        ActorRef<FridgeCommand> fridge =
+                getContext().spawn(Fridge.create(orderExecutor), "Fridge");
 
         ActorRef<WeatherCommand> weatherSensor =
                 getContext().spawn(WeatherSensor.create(blinds), "WeatherSensor");
@@ -53,7 +62,7 @@ public class HomeAutomationController extends AbstractBehavior<Void> {
         ActorRef<TemperatureEnvironmentCommand> temperatureEnv =
                 getContext().spawn(TemperatureEnvironmentActor.create(tempSensor), "TemperatureEnvironment");
 
-        ActorRef<Void> ui = getContext().spawn(UI.create(airCondition, weatherEnv, temperatureEnv, mediaStation), "UI");
+        ActorRef<Object> ui = getContext().spawn(UI.create(tempSensor, airCondition, weatherEnv, temperatureEnv, mediaStation, fridge), "UI");
 
         ActorRef<MqttWeatherActor.MqttCommand> mqtt = getContext().spawn(MqttWeatherActor.create(weatherEnv, temperatureEnv), "MqttWeatherActor");
 

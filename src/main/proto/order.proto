@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option java_package = "at.fhv.sysarch.lab2.homeautomation.grpc";
+option java_multiple_files = true;
+
+service OrderService {
+  rpc order(OrderRequest) returns (OrderReply);
+}
+
+message OrderRequest {
+  string product = 1;
+}
+
+message OrderReply {
+  bool successful = 1;
+}

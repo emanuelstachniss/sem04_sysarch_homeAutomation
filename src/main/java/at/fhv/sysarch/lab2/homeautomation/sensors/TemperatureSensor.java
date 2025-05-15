@@ -13,7 +13,6 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureCommand> {
 
     private final ActorRef<AirCondition.AirConditionCommand> airCondition;
 
-
     public static Behavior<TemperatureCommand> create(ActorRef<AirCondition.AirConditionCommand> airCondition) {
         return Behaviors.setup(context -> new TemperatureSensor(context, airCondition));
     }
