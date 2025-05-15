@@ -27,14 +27,16 @@ public class UI extends AbstractBehavior<Object> {
     private final ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment;
     private final ActorRef<MediaCommand> mediaStation;
     private final ActorRef<FridgeCommand> fridge;
+    private final ActorRef<String> orderExecutor;
 
     public static Behavior<Object> create(
             ActorRef<TemperatureSensor.TemperatureCommand> tempSensor,
             ActorRef<AirCondition.AirConditionCommand> airCondition,
             ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment,
             ActorRef<MediaCommand> mediaStation,
-            ActorRef<FridgeCommand> fridge) {
-        return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, weatherEnvironment, mediaStation, fridge));
+            ActorRef<FridgeCommand> fridge,
+            ActorRef<String> orderExecutor) {
+        return Behaviors.setup(context -> new UI(context, tempSensor, airCondition, weatherEnvironment, mediaStation, fridge, orderExecutor));
     }
 
     private UI(
@@ -43,13 +45,15 @@ public class UI extends AbstractBehavior<Object> {
             ActorRef<AirCondition.AirConditionCommand> airCondition,
             ActorRef<WeatherEnvironmentActor.WeatherEnvironmentCommand> weatherEnvironment,
             ActorRef<MediaCommand> mediaStation,
-            ActorRef<FridgeCommand> fridge) {
+            ActorRef<FridgeCommand> fridge,
+            ActorRef<String> orderExecutor) {
         super(context);
         this.tempSensor = tempSensor;
         this.airCondition = airCondition;
         this.weatherEnvironment = weatherEnvironment;
         this.mediaStation = mediaStation;
         this.fridge = fridge;
+        this.orderExecutor = orderExecutor;
 
         new Thread(this::runCommandLine).start();
 
@@ -178,20 +182,7 @@ public class UI extends AbstractBehavior<Object> {
                     break;
 
                 case "order":
-                    if (command.length > 1) {
-                        String[] parts = command[1].split(" ");
-                        if (parts.length == 2) {
-                            try {
-                                String product = parts[0];
-                                int qty = Integer.parseInt(parts[1]);
-                                fridge.tell(new OrderProduct(product, qty));
-                            } catch (NumberFormatException e) {
-                                System.out.println("Invalid quantity.");
-                            }
-                        } else {
-                            System.out.println("Usage: order <productName> <quantity>");
-                        }
-                    }
+                    this.orderExecutor.tell(command[1]);
                     break;
 
                 case "stock":

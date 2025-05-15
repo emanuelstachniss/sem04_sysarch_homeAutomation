@@ -41,65 +41,13 @@ public class Fridge extends AbstractBehavior<FridgeCommand> {
     @Override
     public Receive<FridgeCommand> createReceive() {
         return newReceiveBuilder()
-                .onMessage(ConsumeProduct.class, this::onConsumeProduct)
-                .onMessage(OrderProduct.class, this::onOrderProduct)
                 .onMessage(ReceiveReceipt.class, this::onReceiveReceipt)
                 .onMessage(QueryStock.class, this::onQueryStock)
                 .onMessage(QueryOrderHistory.class, this::onQueryOrderHistory)
                 .build();
     }
 
-    private Behavior<FridgeCommand> onConsumeProduct(ConsumeProduct msg) {
-        String name = msg.productName();
-        int currentStock = stock.getOrDefault(name, 0);
 
-        if (currentStock > 0) {
-            stock.put(name, currentStock - 1);
-            getContext().getLog().info("Consumed: " + name + " | Remaining: " + (currentStock - 1));
-
-            if (stock.get(name) == 0) {
-                getContext().getLog().info("Out of stock: " + name + " → Auto-reordering...");
-                self.tell(new OrderProduct(name, 2));
-            }
-        } else {
-            getContext().getLog().info("Product not in stock: " + name);
-        }
-
-        return this;
-    }
-
-    private Behavior<FridgeCommand> onOrderProduct(OrderProduct msg) {
-        String name = msg.productName();
-        int quantity = msg.quantity();
-        Product product = productInfo.get(name);
-
-        if (product == null) {
-            getContext().getLog().warn("Unknown product: " + name);
-            return this;
-        }
-
-        int currentWeight = stock.entrySet().stream()
-                .mapToInt(e -> e.getValue() * productInfo.get(e.getKey()).getWeight())
-                .sum();
-
-        int currentCount = stock.values().stream().mapToInt(i -> i).sum();
-
-        int newWeight = currentWeight + quantity * product.getWeight();
-        int newCount = currentCount + quantity;
-
-        if (newWeight > MAX_WEIGHT || newCount > MAX_PRODUCTS) {
-            getContext().getLog().warn("Order exceeds capacity or weight!");
-            return this;
-        }
-
-        ActorRef<OrderServiceClientActor.OrderResponse> replyTo =
-                getContext().messageAdapter(OrderServiceClientActor.OrderResponse.class,
-                        response -> new ReceiveReceipt(response.receipt()));
-
-        orderServiceClient.tell(new OrderServiceClientActor.PlaceOrder(product.getName(), quantity, replyTo));
-
-        return this;
-    }
 
     private Behavior<FridgeCommand> onReceiveReceipt(ReceiveReceipt msg) {
         Receipt receipt = msg.receipt();
