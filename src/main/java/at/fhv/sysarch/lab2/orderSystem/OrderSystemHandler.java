@@ -9,6 +9,7 @@ import akka.actor.typed.javadsl.Receive;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import at.fhv.sysarch.lab2.homeautomation.grpc.OrderServiceHandlerFactory;
+import at.fhv.sysarch.lab2.orderSystem.internal.OrderCommand;
 
 import java.util.concurrent.CompletionStage;
 
@@ -21,9 +22,9 @@ public class OrderSystemHandler extends AbstractBehavior<Void> {
     private OrderSystemHandler(ActorContext<Void> context) {
         super(context);
 
-        ActorRef<String> orderProcessor = getContext().spawn(OrderProcessor.create(), "OrderProcessor");
+        ActorRef<OrderCommand> orderProcessor = getContext().spawn(OrderProcessor.create(), "OrderProcessor");
 
-        OrderServiceImpl orderService = new OrderServiceImpl(orderProcessor);
+        OrderServiceImpl orderService = new OrderServiceImpl(orderProcessor, getContext().getSystem());
 
         CompletionStage<ServerBinding> binding = Http.get(getContext().getSystem())
                 .newServerAt("localhost", 8080)

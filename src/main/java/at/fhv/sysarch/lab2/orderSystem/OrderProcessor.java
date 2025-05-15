@@ -5,26 +5,30 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import at.fhv.sysarch.lab2.orderSystem.internal.OrderCommand;
+import at.fhv.sysarch.lab2.orderSystem.internal.OrderReceived;
+import at.fhv.sysarch.lab2.orderSystem.internal.OrderReplyInternal;
 
-public class OrderProcessor extends AbstractBehavior<String> {
+public class OrderProcessor extends AbstractBehavior<OrderCommand> {
 
-    public static Behavior<String> create() {
+    public static Behavior<OrderCommand> create() {
         return Behaviors.setup(OrderProcessor::new);
     }
 
-    private OrderProcessor(ActorContext<String> context) {
+    private OrderProcessor(ActorContext<OrderCommand> context) {
         super(context);
     }
 
     @Override
-    public Receive<String> createReceive() {
+    public Receive<OrderCommand> createReceive() {
         return newReceiveBuilder()
-                .onMessage(String.class, this::onOrderReceived)
+                .onMessage(OrderReceived.class, this::onOrderReceived)
                 .build();
     }
 
-    private Behavior<String> onOrderReceived(String s) {
+    private Behavior<OrderCommand> onOrderReceived(OrderReceived s) {
         getContext().getLog().info("Order received {}", s);
+        s.replyTo().tell(new OrderReplyInternal(true));
         // TODO: process order, generate return value
         return Behaviors.same();
     }
