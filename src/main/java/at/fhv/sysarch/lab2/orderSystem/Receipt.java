@@ -1,4 +1,4 @@
-package at.fhv.sysarch.lab2.homeautomation.commands.fridge;
+package at.fhv.sysarch.lab2.orderSystem;
 
 import java.util.List;
 
@@ -11,12 +11,5 @@ public class Receipt {
 
     public List<Product> products() {
         return products;
-    }
-
-    @Override
-    public String toString() {
-        return "Receipt{" +
-                "products=" + products +
-                '}';
     }
 }

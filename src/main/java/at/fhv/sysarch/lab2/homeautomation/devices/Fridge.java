@@ -4,74 +4,108 @@ import akka.actor.typed.*;
 import akka.actor.typed.javadsl.*;
 import at.fhv.sysarch.lab2.homeautomation.commands.fridge.*;
 import at.fhv.sysarch.lab2.orderSystem.OrderServiceClientActor;
+import at.fhv.sysarch.lab2.orderSystem.Product;
+import at.fhv.sysarch.lab2.orderSystem.Receipt;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Fridge extends AbstractBehavior<FridgeCommand> {
 
-    // Constants
-    private static final int MAX_PRODUCTS = 10;
-    private static final int MAX_WEIGHT = 500;
-
-    // State
-    private final Map<String, Integer> stock = new HashMap<>();
-    private final Map<String, Product> productInfo = new HashMap<>();
+    private final List<Product> storedProducts = new ArrayList<>();
     private final List<Receipt> orderHistory = new ArrayList<>();
-    private final ActorRef<FridgeCommand> self;
-    private final ActorRef<OrderServiceClientActor.OrderCommand> orderServiceClient;
 
-    public static Behavior<FridgeCommand> create(ActorRef<OrderServiceClientActor.OrderCommand> orderServiceClient) {
-        return Behaviors.setup(ctx -> new Fridge(ctx, orderServiceClient));
+    private final int maxProducts = 20;
+    private final double maxWeight = 100.0;
+
+    private final ActorRef<OrderServiceClientActor.OrderCommand> orderClient;
+
+    private final ActorRef<OrderServiceClientActor.OrderResponse> orderResponseAdapter;
+
+    public static Behavior<FridgeCommand> create(ActorRef<OrderServiceClientActor.OrderCommand> orderClient) {
+        return Behaviors.setup(ctx -> new Fridge(ctx, orderClient));
     }
 
-    private Fridge(ActorContext<FridgeCommand> ctx, ActorRef<OrderServiceClientActor.OrderCommand> orderServiceClient) {
-        super(ctx);
-        this.self = ctx.getSelf();
-        this.orderServiceClient = orderServiceClient;
+    private Fridge(ActorContext<FridgeCommand> context, ActorRef<OrderServiceClientActor.OrderCommand> orderClient) {
+        super(context);
+        this.orderClient = orderClient;
 
-        // Sample products for demo
-        Product milk = new Product("Milk", 1, 20);
-        Product bread = new Product("Bread", 1, 10);
-        productInfo.put(milk.getName(), milk);
-        productInfo.put(bread.getName(), bread);
-        stock.merge(milk.getName(), 3, Integer::sum);
-        stock.merge(bread.getName(), 2, Integer::sum);
+        this.orderResponseAdapter = context.messageAdapter(OrderServiceClientActor.OrderResponse.class, OrderResponseWrapper::new);
     }
 
     @Override
     public Receive<FridgeCommand> createReceive() {
         return newReceiveBuilder()
-                .onMessage(ReceiveReceipt.class, this::onReceiveReceipt)
-                .onMessage(QueryStock.class, this::onQueryStock)
-                .onMessage(QueryOrderHistory.class, this::onQueryOrderHistory)
+                .onMessage(ConsumeProduct.class, this::onConsumeProduct)
+                .onMessage(OrderProduct.class, this::onOrderProduct)
+                .onMessage(OrderResponseWrapper.class, this::onOrderResponse)
                 .build();
     }
 
+    private Behavior<FridgeCommand> onConsumeProduct(ConsumeProduct msg) {
+        Optional<Product> productOpt = storedProducts.stream()
+                .filter(p -> p.getName().equalsIgnoreCase(msg.productName))
+                .findFirst();
 
+        productOpt.ifPresentOrElse(product -> {
+            storedProducts.remove(product);
+            getContext().getLog().info("Consumed {}", product.getName());
 
-    private Behavior<FridgeCommand> onReceiveReceipt(ReceiveReceipt msg) {
-        Receipt receipt = msg.receipt();
-        getContext().getLog().info("Order received: {}", receipt);
-
-        for (Product p : receipt.products()) {
-            stock.merge(p.getName(), p.getQuantity(), Integer::sum);
-            productInfo.putIfAbsent(p.getName(), p);
-        }
-
-        orderHistory.add(receipt);
+            long remaining = storedProducts.stream().filter(p -> p.getName().equals(product.getName())).count();
+            if (remaining == 0) {
+                getContext().getLog().info("{} is empty, auto reordering 1 unit", product.getName());
+                orderClient.tell(new OrderServiceClientActor.PlaceOrder(product.getName(), 1, orderResponseAdapter));
+            }
+        }, () -> getContext().getLog().warn("Product {} not found", msg.productName));
 
         return this;
     }
 
+    private Behavior<FridgeCommand> onOrderProduct(OrderProduct msg) {
+        int currentCount = storedProducts.size();
+        double currentWeight = storedProducts.stream().mapToDouble(Product::getWeight).sum();
+
+        Product sample = new Product(msg.productName, 1, 10); // dummy product
+        int newTotal = currentCount + msg.quantity;
+        double newWeight = currentWeight + (sample.getWeight() * msg.quantity);
+
+        if (newTotal > maxProducts || newWeight > maxWeight) {
+            msg.replyTo.tell(new FridgeResponse(false, "Not enough capacity or weight"));
+        } else {
+            orderClient.tell(new OrderServiceClientActor.PlaceOrder(msg.productName, msg.quantity, orderResponseAdapter));
+            msg.replyTo.tell(new FridgeResponse(true, "Order placed"));
+        }
+
+        return this;
+    }
+
+    private Behavior<FridgeCommand> onOrderResponse(OrderResponseWrapper msg) {
+        Receipt receipt = msg.response.receipt();
+        orderHistory.add(receipt);
+        storedProducts.addAll(receipt.products());
+
+        getContext().getLog().info("Order arrived: {}", receipt);
+        return this;
+    }
 
     private Behavior<FridgeCommand> onQueryStock(QueryStock msg) {
-        FridgeState state = new FridgeState(new HashMap<>(stock));
-        msg.replyTo().tell(state);
+        Map<String, Long> stockMap = storedProducts.stream()
+                .collect(Collectors.groupingBy(Product::getName, Collectors.counting()));
+
+        msg.replyTo.tell(new FridgeState(stockMap));
         return this;
     }
 
     private Behavior<FridgeCommand> onQueryOrderHistory(QueryOrderHistory msg) {
-        msg.replyTo().tell(orderHistory);
+        msg.replyTo.tell(new OrderHistoryMessage(orderHistory));
         return this;
+    }
+
+    // Wrapper für Adapter
+    private static class OrderResponseWrapper implements FridgeCommand {
+        final OrderServiceClientActor.OrderResponse response;
+        public OrderResponseWrapper(OrderServiceClientActor.OrderResponse response) {
+            this.response = response;
+        }
     }
 }

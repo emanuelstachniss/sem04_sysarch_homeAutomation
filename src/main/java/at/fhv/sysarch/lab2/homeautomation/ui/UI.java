@@ -13,9 +13,12 @@ import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaPlayer;
 import at.fhv.sysarch.lab2.homeautomation.commands.mediaStation.MediaType;
 import at.fhv.sysarch.lab2.homeautomation.commands.weather.WeatherTypes;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
+import at.fhv.sysarch.lab2.homeautomation.devices.Fridge;
 import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
 import at.fhv.sysarch.lab2.homeautomation.environment.SimulationMode;
 import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironmentActor;
+import at.fhv.sysarch.lab2.orderSystem.Product;
+import at.fhv.sysarch.lab2.orderSystem.Receipt;
 
 import java.util.List;
 import java.util.Scanner;
@@ -64,33 +67,12 @@ public class UI extends AbstractBehavior<Object> {
     public Receive<Object> createReceive() {
         return newReceiveBuilder()
                 .onSignal(PostStop.class, signal -> onPostStop())
-                .onMessage(FridgeState.class, this::onFridgeState)
-                .onMessage(OrderHistoryMessage.class, this::onOrderHistory)
-                .onMessage(List.class, this::onOrderHistoryReceived)  // Hier für List<Receipt> hinzufügen
+                .onMessage(List.class, this::onOrderHistoryReceived)
                 .build();
     }
 
     private UI onPostStop() {
         getContext().getLog().info("UI stopped");
-        return this;
-    }
-
-    private UI onFridgeState(FridgeState state) {
-        System.out.println("Fridge stock: " + state.getStock());
-        return this;
-    }
-
-    private UI onOrderHistory(OrderHistoryMessage msg) {
-        System.out.println("Fridge order history:");
-        if (msg.receipts().isEmpty()) {
-            System.out.println("  (no orders)");
-        } else {
-            for (Receipt receipt : msg.receipts()) {
-                for (Product product : receipt.products()) {
-                    System.out.println("  - " + product.getName() + " x" + product.getQuantity());
-                }
-            }
-        }
         return this;
     }
 
@@ -126,6 +108,8 @@ public class UI extends AbstractBehavior<Object> {
                         } catch (NumberFormatException e) {
                             System.out.println("Invalid temperature value.");
                         }
+                    } else {
+                        System.out.println("Usage: t <value>");
                     }
                     break;
 
@@ -135,8 +119,10 @@ public class UI extends AbstractBehavior<Object> {
                             WeatherTypes weather = WeatherTypes.valueOf(command[1].toUpperCase());
                             weatherEnvironment.tell(new WeatherEnvironmentActor.SetWeather(weather));
                         } catch (IllegalArgumentException e) {
-                            System.out.println("Unknown weather type. Use: SUNNY, CLOUDY, RAIN, SNOW or STORM");
+                            System.out.println("Unknown weather type. Use: SUNNY, CLOUDY, RAIN, SNOW, STORM");
                         }
+                    } else {
+                        System.out.println("Usage: weather <type>");
                     }
                     break;
 
@@ -146,10 +132,10 @@ public class UI extends AbstractBehavior<Object> {
                             SimulationMode mode = SimulationMode.valueOf(command[1].toUpperCase());
                             weatherEnvironment.tell(new WeatherEnvironmentActor.SetSimulationMode(mode));
                         } catch (IllegalArgumentException e) {
-                            System.out.println("Unknown simulation mode. Use: external/internal");
+                            System.out.println("Unknown simulation mode. Use: EXTERNAL or INTERNAL");
                         }
                     } else {
-                        System.out.println("Unknown simulation mode. Use: start <mode>");
+                        System.out.println("Usage: start <mode>");
                     }
                     break;
 
@@ -175,41 +161,48 @@ public class UI extends AbstractBehavior<Object> {
 
                 case "consume":
                     if (command.length > 1) {
-                        fridge.tell(new ConsumeProduct(command[1]));
+                        fridge.tell(new Fridge.ConsumeProduct(command[1]));
                     } else {
                         System.out.println("Usage: consume <productName>");
                     }
                     break;
 
                 case "order":
-                    this.orderExecutor.tell(command[1]);
-                    break;
-
-                case "stock":
-                    fridge.tell(new QueryStock(getContext().getSelf().narrow()));
-                    break;
-
-                case "orderHistory":
-                    fridge.tell(new QueryOrderHistory(getContext().getSelf().narrow()));
+                    if (command.length > 1) {
+                        String[] args = command[1].split(" ");
+                        if (args.length == 2) {
+                            try {
+                                String product = args[0];
+                                int quantity = Integer.parseInt(args[1]);
+                                fridge.tell(new Fridge.OrderProduct(product, quantity, getContext().getSelf().narrow()));
+                            } catch (NumberFormatException e) {
+                                System.out.println("Quantity must be an integer.");
+                            }
+                        } else {
+                            System.out.println("Usage: order <product> <qty>");
+                        }
+                    } else {
+                        System.out.println("Usage: order <product> <qty>");
+                    }
                     break;
 
                 case "help":
                     System.out.println("Commands:");
-                    System.out.println("  t <value>         - Set temperature");
-                    System.out.println("  weather <type>    - Set weather manually");
-                    System.out.println("  start <mode>      - Start weather simulation");
-                    System.out.println("  stopsim           - Stop weather simulation");
-                    System.out.println("  play <title>      - Play movie");
-                    System.out.println("  stop <title>      - Stop movie");
-                    System.out.println("  consume <product> - Consume product");
-                    System.out.println("  order <product> <qty> - Order product");
-                    System.out.println("  stock             - Show fridge stock");
-                    System.out.println("  history           - Show order history");
-                    System.out.println("  quit              - Exit");
+                    System.out.println("  t <value>            - Set temperature");
+                    System.out.println("  weather <type>       - Set weather manually (SUNNY, CLOUDY, RAIN, SNOW, STORM)");
+                    System.out.println("  start <mode>         - Start weather simulation (EXTERNAL, INTERNAL)");
+                    System.out.println("  stopsim              - Stop weather simulation");
+                    System.out.println("  play <title>         - Play movie");
+                    System.out.println("  stop <title>         - Stop movie");
+                    System.out.println("  consume <product>    - Consume product");
+                    System.out.println("  order <product> <qty>- Order product");
+                    System.out.println("  stock                - Show fridge stock");
+                    System.out.println("  history              - Show order history");
+                    System.out.println("  quit                 - Exit");
                     break;
 
                 default:
-                    System.out.println("Unknown command. Type 'help' for commands.");
+                    System.out.println("Unknown command. Type 'help' for available commands.");
             }
         }
 
